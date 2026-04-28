@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'main.dart';
+import 'main_navigation.dart';
 
 class LoginPage extends StatelessWidget {
   LoginPage({Key? key}) : super(key: key);
@@ -48,7 +49,8 @@ class LoginPage extends StatelessWidget {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const MyHomePage(title: 'Rapportera-is-app'),
+           // builder: (context) => const MyHomePage(title: 'Rapportera-is-app'),
+            builder: (context) => const MainNavigation(),
           ),
         );
       } else {
@@ -115,8 +117,8 @@ class LoginPage extends StatelessWidget {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          const MyHomePage(title: 'Rapportera-is-app'),
+                     // builder: (context) => const MyHomePage(title: 'Rapportera-is-app'),
+                      builder: (context) => const MainNavigation(),
                     ),
                   );
                 },
