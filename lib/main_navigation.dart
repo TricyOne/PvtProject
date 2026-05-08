@@ -5,18 +5,19 @@ import 'ice_report/ice_report_screen.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
 import 'search_page.dart';
+import 'menu_extended.dart';
 
-class MainNavigation extends StatefulWidget{
+class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation>{
+class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const[
+  final List<Widget> _pages = const [
     HomeScreen(),
     CommunityScreen(),
     IceReportScreen(),
@@ -24,59 +25,37 @@ class _MainNavigationState extends State<MainNavigation>{
     ProfileScreen(),
   ];
 
-  void _onItemTapped(int index){
-    setState((){
+  void _onItemTapped(int index) {
+    setState(() {
       _selectedIndex = index;
     });
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const MenuExtended(),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 2,
 
-        leading: PopupMenuButton<String>(
-          icon: const Icon(Icons.menu, color: Colors.black),
-          onSelected: (value){
-
-          },
-          itemBuilder: (context) =>[
-            const PopupMenuItem(
-              value: 'settings',
-              child: Text('Settings'),
-            ),
-            const PopupMenuItem(
-              value: 'saved',
-              child: Text('Saved'),
-            ),
-            const PopupMenuItem(
-              value: 'reports',
-              child: Text('Reports'),
-            ),
-            const PopupMenuItem(
-              value: 'logout',
-              child: Text('Log out'),
-            ),
-          ],
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
 
-        title: Image.asset(
-          'assets/skate.png',
-          height: 40,
-        ),
+        title: Image.asset('assets/noto-v1_ice-skate.png', height: 60),
         centerTitle: true,
 
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: (){
+            onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const SearchPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const SearchPage()),
               );
             },
           ),
