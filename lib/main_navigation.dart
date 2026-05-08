@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'search_screen.dart';
+import 'community_screen.dart';
+import 'ice_report/ice_report_screen.dart';
+import 'map_screen.dart';
 import 'profile_screen.dart';
 import 'search_page.dart';
 
@@ -16,7 +18,9 @@ class _MainNavigationState extends State<MainNavigation>{
 
   final List<Widget> _pages = const[
     HomeScreen(),
-    SearchScreen(),
+    CommunityScreen(),
+    IceReportScreen(),
+    MapScreen(),
     ProfileScreen(),
   ];
 
@@ -57,7 +61,7 @@ class _MainNavigationState extends State<MainNavigation>{
             ),
           ],
         ),
-        
+
         title: Image.asset(
           'assets/skate.png',
           height: 40,
@@ -85,15 +89,29 @@ class _MainNavigationState extends State<MainNavigation>{
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
 
+        type: BottomNavigationBarType.fixed,
+
         items: const[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
+
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+            icon: Icon(Icons.groups),
+            label: 'Community',
           ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.location_pin),
+            label: 'Ice Report',
+          ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: 'Map',
+          ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
