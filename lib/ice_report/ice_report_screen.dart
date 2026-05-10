@@ -54,10 +54,6 @@ class _IceReportScreenState extends State<IceReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_currentStep]),
-      ),
-
       body: Column(
         children: [
           Expanded(
