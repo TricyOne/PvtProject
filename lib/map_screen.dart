@@ -24,11 +24,12 @@ class MapScreen extends StatelessWidget {
                 west: 5.9559113,
               ),
             ),
+
             osmOption: OSMOption(
-              userTrackingOption: const UserTrackingOption(
-                enableTracking: true,
-                unFollowUser: false,
-              ),
+            userTrackingOption: const UserTrackingOption(
+              enableTracking: true,
+              unFollowUser: false,
+            ),
             zoomOption: const ZoomOption(
               initZoom: 8,
               minZoomLevel: 3,
@@ -55,7 +56,7 @@ class MapScreen extends StatelessWidget {
             ),
           ),
         )
-      )
+      ),
     );
   }
 }
