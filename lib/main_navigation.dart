@@ -61,7 +61,7 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-
+      
       body: _pages[_selectedIndex],
 
       bottomNavigationBar: BottomNavigationBar(
