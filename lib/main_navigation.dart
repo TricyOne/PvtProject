@@ -8,7 +8,8 @@ import 'search_page.dart';
 import 'menu_extended.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final bool isGuest;
+  const MainNavigation({super.key, this.isGuest = false});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -26,6 +27,10 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   void _onItemTapped(int index) {
+    const guestBlockedIndexes = {
+      1,
+    }; //gästinlogg kan inte använda community-knappen för tillfället - lägg senare till mer blocked indexes för t.ex. profile
+    if (widget.isGuest && guestBlockedIndexes.contains(index)) return;
     setState(() {
       _selectedIndex = index;
     });
@@ -34,7 +39,7 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const MenuExtended(),
+      drawer: MenuExtended(isGuest: widget.isGuest),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 2,
@@ -70,31 +75,19 @@ class _MainNavigationState extends State<MainNavigation> {
 
         type: BottomNavigationBarType.fixed,
 
-        items: const[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
-            label: 'Community',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.groups), label: 'Community'),
 
           BottomNavigationBarItem(
             icon: Icon(Icons.location_pin),
             label: 'Ice Report',
           ),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Map',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );

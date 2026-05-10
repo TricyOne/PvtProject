@@ -3,7 +3,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
-import 'main.dart';
 import 'main_navigation.dart';
 
 class LoginPage extends StatelessWidget {
@@ -29,9 +28,7 @@ class LoginPage extends StatelessWidget {
 
       if (idToken == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Token kunde inte hämtas från Google'),
-          ), //svenska/engelska?
+          const SnackBar(content: Text('Failed to retrieve token from Google')),
         );
         return;
       }
@@ -49,14 +46,13 @@ class LoginPage extends StatelessWidget {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            // builder: (context) => const MyHomePage(title: 'Rapportera-is-app'),
-            builder: (context) => const MainNavigation(),
+            builder: (context) => const MainNavigation(isGuest: false),
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Log in failed')), //svenska/engelska?
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Log in failed')));
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -105,7 +101,7 @@ class LoginPage extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             const Spacer(flex: 2),
@@ -117,8 +113,7 @@ class LoginPage extends StatelessWidget {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      // builder: (context) => const MyHomePage(title: 'Rapportera-is-app'),
-                      builder: (context) => const MainNavigation(),
+                      builder: (context) => const MainNavigation(isGuest: true),
                     ),
                   );
                 },
