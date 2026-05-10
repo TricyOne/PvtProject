@@ -3,4 +3,9 @@ class IceReportModel {
   String? iceType;
   String? iceSurface;
   String? observations;
+
+  double iceThickness = 0;
+
+  bool isNow = true;
+  DateTime? selectedDateTime;
 }

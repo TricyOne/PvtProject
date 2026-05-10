@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application/home_screen.dart';
+import 'package:flutter_application/ice_report/ice_report_screen.dart';
+import 'package:flutter_application/main_navigation.dart';
 import 'login_page.dart';
 
 void main() {
@@ -13,7 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Rapportera-is-app',
-      home: LoginPage(),
+      home: MainNavigation(),
     );
   }
 }
