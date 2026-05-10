@@ -37,6 +37,7 @@ dependencies:
   google_sign_in: 6.2.2
   flutter_secure_storage: ^10.0.0
   http: ^1.6.0
+  flutter_osm_plugin: ^1.4.3
 
 dev_dependencies:
   flutter_test:
