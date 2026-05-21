@@ -4,6 +4,7 @@ import 'steps/add_report_for_step.dart';
 import 'steps/ice_type_step.dart';
 import 'steps/ice_surface_step.dart';
 import 'steps/observations_step.dart';
+import 'report_service.dart';
 
 class IceReportScreen extends StatefulWidget {
   const IceReportScreen({super.key});
@@ -38,17 +39,20 @@ class _IceReportScreenState extends State<IceReportScreen> {
     }
   }
 
-  void _submitReport() {
-    // Later: send to backend
-    debugPrint("Submitting report:");
-    debugPrint("AddFor: ${report.addReportFor}");
-    debugPrint("IceType: ${report.iceType}");
-    debugPrint("Surface: ${report.iceSurface}");
-    debugPrint("Obs: ${report.observations}");
+  void _submitReport() async {
+    final success = await ReportService.submitReport(report);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Report submitted!")),
-    );
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Report submitted!")),
+      );
+
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to submit report")),
+      );
+    }
   }
 
   @override

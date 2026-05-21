@@ -39,6 +39,7 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFC1E4FF),
       drawer: MenuExtended(isGuest: widget.isGuest),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -66,7 +67,7 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-      
+
       body: _pages[_selectedIndex],
 
       bottomNavigationBar: BottomNavigationBar(
