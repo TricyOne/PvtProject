@@ -16,7 +16,7 @@ class IceReportScreen extends StatefulWidget {
 class _IceReportScreenState extends State<IceReportScreen> {
   int _currentStep = 0;
 
-  final IceReportModel report = IceReportModel();
+  final IceReportModel report = IceReportModel() ..locationId = 1; // TEMP
 
   final List<String> _titles = [
     'Add Report For',
