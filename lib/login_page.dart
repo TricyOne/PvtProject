@@ -5,6 +5,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'main_navigation.dart';
 
+const String apiBaseUrl = 'http://194.104.94.159:8080';
+
 class LoginPage extends StatelessWidget {
   LoginPage({Key? key}) : super(key: key);
 
@@ -34,7 +36,7 @@ class LoginPage extends StatelessWidget {
       }
 
       final response = await http.post(
-        Uri.parse('http://194.104.94.159:8080/api/auth/oauth/google'),
+        Uri.parse('$apiBaseUrl/api/auth/oauth/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );
@@ -42,6 +44,15 @@ class LoginPage extends StatelessWidget {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         await _storage.write(key: 'jwt_token', value: data['accessToken']);
+
+        final meResp = await http.get(
+          Uri.parse('$apiBaseUrl/api/auth/me'),
+          headers: {'Authorization': 'Bearer ${data['accessToken']}'},
+        );
+        if (meResp.statusCode == 200) {
+          final me = jsonDecode(meResp.body);
+          await _storage.write(key: 'user_id', value: me['id'].toString());
+        }
 
         Navigator.pushReplacement(
           context,
