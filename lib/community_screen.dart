@@ -57,16 +57,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
             tabs: [
-              Tab(text: 'Följare'),
-              Tab(text: 'Utforska'),
+              Tab(text: 'Followers'),
+              Tab(text: 'Explore'),
             ],
           ),
           // Båda flikar visar samma feed. Finns ingen filtreringsendpoint från backend.
-          Expanded(
-            child: TabBarView(
-              children: [_buildFeed(showFollowerNotice: true), _buildFeed()],
-            ),
-          ),
+          Expanded(child: TabBarView(children: [_buildFeed(), _buildFeed()])),
         ],
       ),
     );
@@ -132,7 +128,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Text(
-                  'Vad gör du just nu?',
+                  'What are you up to?', //"Vad gör du just nu?"
                   style: TextStyle(color: Colors.black54),
                 ),
               ),
@@ -143,7 +139,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  Widget _buildFeed({bool showFollowerNotice = false}) {
+  Widget _buildFeed() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _postsFuture,
       builder: (context, snapshot) {
@@ -169,22 +165,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
           onRefresh: _refresh,
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 7.5, 12, 12),
-            itemCount: posts.length + (showFollowerNotice ? 1 : 0),
+            itemCount: posts.length,
             separatorBuilder: (_, __) => const Padding(
               padding: EdgeInsets.symmetric(horizontal: 17, vertical: 8.5),
               child: Divider(height: 1, color: Colors.black87),
             ),
             itemBuilder: (context, index) {
-              if (showFollowerNotice && index == 0) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                  child: Text(
-                    'Visar alla inlägg',
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
-                  ),
-                );
-              }
-              final post = posts[index - (showFollowerNotice ? 1 : 0)];
+              final post = posts[index];
               final userId = post['userId'] as int;
               return PostCard(
                 username: _placeholderUsername(userId),
@@ -206,7 +193,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
 //PostResponse saknar username/avatar.
 //Avnändare visas som "Användare #N" tills profile_screen.dart lägger till möjlighet att sätta username + avatar
 
-String _placeholderUsername(int userId) => 'Användare #$userId';
+String _placeholderUsername(int userId) => 'User #$userId';
 
 String _formatDate(String iso) {
   final normalized = iso.endsWith('Z') ? iso : '${iso}Z';
