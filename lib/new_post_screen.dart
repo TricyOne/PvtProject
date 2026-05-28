@@ -28,11 +28,11 @@ class _NewPostScreenState extends State<NewPostScreen> {
   int? _currentUserId;
 
   static const Map<String, String> _displayLabel = {
-    'HAPPY': 'glad',
-    'EXCITED': 'upprymd',
-    'CALM': 'lugn',
-    'TIRED': 'trött',
-    'COLD': 'frusen',
+    'HAPPY': 'happy',
+    'EXCITED': 'excited',
+    'CALM': 'calm',
+    'TIRED': 'tired',
+    'COLD': 'cold',
   };
   static const Map<String, String> _emoji = {
     'HAPPY': '\u{1F600}',
@@ -91,8 +91,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
     final emoji = _emoji[picked]!;
 
     //placeholdernamn används, byt till riktiga visningsnamn när profile_screen.dart levererar det
-    final newLine =
-        'Användare #${_currentUserId!} känner sig $label $emoji'; //todo: ändra från hårdkodat
+    final newLine = 'User #${_currentUserId!} is feeling $label $emoji';
 
     final currentText = _textController.text;
     final rest = _selectedFeeling != null
@@ -213,7 +212,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Nytt inlägg',
+          'New post',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
@@ -263,7 +262,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 const SizedBox(width: 12),
                 //placeholdernamn, byts till riktiga visningsnamnet när profile_screen.dart levererar funktionaliteten
                 Text(
-                  'Användare #${_currentUserId ?? ""}',
+                  'User #${_currentUserId ?? ""}',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -274,15 +273,18 @@ class _NewPostScreenState extends State<NewPostScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 //Personer+Plats kräver user-search-endpoint från backend.
-                const _RoundedButton(icon: Icons.people, label: 'Personer'),
-                const _RoundedButton(icon: Icons.location_on, label: 'Plats'),
+                const _RoundedButton(icon: Icons.people, label: 'People'),
+                const _RoundedButton(
+                  icon: Icons.location_on,
+                  label: 'Location',
+                ),
                 _FeelingButton(
                   selectedFeeling: _selectedFeeling,
                   emoji: _selectedFeeling == null
                       ? null
                       : _emoji[_selectedFeeling],
                   label: _selectedFeeling == null
-                      ? 'Känsla'
+                      ? 'Feeling'
                       : _displayLabel[_selectedFeeling]!,
                   onTap: _openFeelingPicker,
                 ),

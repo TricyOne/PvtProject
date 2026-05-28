@@ -1,5 +1,13 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
+
+const String _apiBaseUrl = 'http://194.104.94.159:8080';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,6 +17,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  LatLng _userPosition = const LatLng(59.406811, 17.945972);
+  String _locationLabel = 'Loading...';
+  bool _locationLoaded = false;
+
+  List<Map<String, dynamic>> _locations = [];
+  Map<String, dynamic>? _selectedLocation;
+
+  Map<String, double> _temperatures = {};
+
+  final MapController _mapController = MapController();
+
   final List<Map<String, dynamic>> reports = [
     {
       'time': '12:45, today',
@@ -33,17 +52,212 @@ class _HomeScreenState extends State<HomeScreen> {
     },
   ];
 
-  final Map<String, double> temperatures = {
-    '03': -5.5,
-    '06': -4.2,
-    '09': -2.1,
-    '12': 0.4,
-    '15': 1.0,
-    '18': -0.8,
-    '21': -2.5,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
 
-  String selectedLocation = '[Location/Choose location/Solna]';
+  Future<void> _init() async {
+    await _fetchLocations();
+    await _fetchUserPosition();
+    _selectNearestLocation();
+  }
+
+  Future<void> _fetchUserPosition() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _userPosition = LatLng(position.latitude, position.longitude);
+        _locationLoaded = true;
+      });
+    } catch (e) {
+      // GPS misslyckades - då behålls Stockholm fallback
+      debugPrint('GPS error: $e');
+    }
+  }
+
+  Future<void> _fetchLocations() async {
+    try {
+      final response = await http.get(Uri.parse('$_apiBaseUrl/api/locations'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _locations = data.cast<Map<String, dynamic>>();
+        });
+      }
+    } catch (e) {
+      debugPrint('Could not collect lakes/ice-locations: $e');
+    }
+  }
+
+  void _selectNearestLocation() {
+    if (_locations.isEmpty) return;
+
+    Map<String, dynamic>? nearest;
+    double shortestDistance = double.infinity;
+
+    for (final loc in _locations) {
+      final dist = _calculateDistance(
+        _userPosition.latitude,
+        _userPosition.longitude,
+        (loc['lat'] as num).toDouble(),
+        (loc['lng'] as num).toDouble(),
+      );
+      if (dist < shortestDistance) {
+        shortestDistance = dist;
+        nearest = loc;
+      }
+    }
+
+    if (nearest != null) {
+      setState(() {
+        _selectedLocation = nearest;
+        _locationLabel = nearest!['title'] as String;
+      });
+      _fetchWeather(nearest['id'] as int);
+      _mapController.move(
+        LatLng(
+          (nearest['lat'] as num).toDouble(),
+          (nearest['lng'] as num).toDouble(),
+        ),
+        13.0,
+      );
+    }
+  }
+
+  double _calculateDistance(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
+    final dLat = lat1 - lat2;
+    final dLng = lng1 - lng2;
+    return sqrt(dLat * dLat + dLng * dLng);
+  }
+
+  Future<void> _fetchWeather(int locationId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_apiBaseUrl/api/locations/$locationId'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final weather = data['weather'];
+        if (weather != null) {
+          final tempMap = weather['temperature'] as Map<String, dynamic>;
+          setState(() {
+            _temperatures = tempMap.map(
+              (key, value) => MapEntry(key, (value as num).toDouble()),
+            );
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Could not collect weather: $e');
+    }
+  }
+
+  List<String> _getSortedHours() {
+    final hours = _temperatures.keys.toList();
+    hours.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+    return hours;
+  }
+
+  void _showLocationPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) {
+        String searchQuery = '';
+
+        return StatefulBuilder(
+          builder: (context, setBottomSheetState) {
+            final filteredLocations = _locations.where((loc) {
+              final title = (loc['title'] as String).toLowerCase();
+              return title.startsWith(searchQuery.toLowerCase());
+            }).toList();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Choose location',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Search location...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setBottomSheetState(() {
+                          searchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...filteredLocations.map(
+                    (loc) => ListTile(
+                      title: Text(loc['title'] as String),
+                      //  subtitle: Text((loc['description'] as String?) ?? ''), inkluderar beskrivning under sjön
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _selectedLocation = loc;
+                          _locationLabel = loc['title'] as String;
+                        });
+                        _fetchWeather(loc['id'] as int);
+                        _mapController.move(
+                          LatLng(
+                            (loc['lat'] as num).toDouble(),
+                            (loc['lng'] as num).toDouble(),
+                          ),
+                          13.0,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +279,36 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMapSection() {
     return SizedBox(
       width: double.infinity,
-      height: 200,
-      child: Image.asset('assets/karta_placeholder.png', fit: BoxFit.cover),
+      height: 250,
+      child: FlutterMap(
+        mapController: _mapController,
+        options: MapOptions(initialCenter: _userPosition, initialZoom: 12.0),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.example.flutter_application',
+          ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: _selectedLocation != null
+                    ? LatLng(
+                        (_selectedLocation!['lat'] as num).toDouble(),
+                        (_selectedLocation!['lng'] as num).toDouble(),
+                      )
+                    : _userPosition,
+                width: 40,
+                height: 40,
+                child: const Icon(
+                  Icons.location_on,
+                  color: Color(0xFF0090FF),
+                  size: 40,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -150,13 +392,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: reportTextStyle.copyWith(
                         fontWeight: FontWeight.w700,
                         decoration: TextDecoration.underline,
-                        backgroundColor: _ratingColor(report['rating']),
+                        backgroundColor: _ratingColor(report['rating'] as int),
                       ),
                     ),
                     TextSpan(
                       text: ' ${report['unit']}',
                       style: reportTextStyle.copyWith(
                         decoration: TextDecoration.underline,
+                        backgroundColor: _ratingColor(report['rating'] as int),
                       ),
                     ),
                   ],
@@ -164,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            _buildStars(report['rating']),
+            _buildStars(report['rating'] as int),
           ],
         ),
       ),
@@ -213,9 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () {
-                  //att göra senare: visa lista med sjöar/platser (från Backend)
-                },
+                onTap: _showLocationPicker,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -230,7 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const SizedBox(width: 4),
                       Text(
-                        selectedLocation,
+                        _locationLabel,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -243,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Row(
                 children: [
-                  const Text('Today', style: TextStyle(fontSize: 14)),
+                  const Text('Today ', style: TextStyle(fontSize: 14)),
                   Image.asset('assets/icon_cloud.png', width: 24, height: 24),
                   const SizedBox(width: 4),
                 ],
@@ -253,15 +494,17 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           SizedBox(
             height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: temperatures.length,
-              itemBuilder: (context, index) {
-                final time = temperatures.keys.elementAt(index);
-                final temp = temperatures[time]!;
-                return _buildWeatherColumn(time, temp);
-              },
-            ),
+            child: _temperatures.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _getSortedHours().length,
+                    itemBuilder: (context, index) {
+                      final hour = _getSortedHours()[index];
+                      final temp = _temperatures[hour]!;
+                      return _buildWeatherColumn(hour, temp);
+                    },
+                  ),
           ),
         ],
       ),
@@ -271,22 +514,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWeatherColumn(String time, double temp) {
     return Container(
       width: 65,
+      height: 133,
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: Colors.white, width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('$time:00', style: const TextStyle(fontSize: 13)),
-          const SizedBox(height: 8),
-          Image.asset('assets/icon_snowflake.png', width: 24, height: 24),
+          Text('$time:00', style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 8),
           Text(
             '${temp.toStringAsFixed(0)}\u00B0C',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ),

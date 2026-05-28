@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 const List<(String, String, String)> _feelings = [
-  ('HAPPY', 'glad', '\u{1F600}'),
-  ('EXCITED', 'upprymd', '\u{1F929}'),
-  ('CALM', 'lugn', '\u{1F60C}'),
-  ('TIRED', 'trött', '\u{1F971}'),
-  ('COLD', 'frusen', '\u{1F976}'),
+  ('HAPPY', 'happy', '\u{1F600}'),
+  ('EXCITED', 'excited', '\u{1F929}'),
+  ('CALM', 'calm', '\u{1F60C}'),
+  ('TIRED', 'tired', '\u{1F971}'),
+  ('COLD', 'cold', '\u{1F976}'),
 ];
 
 class FeelingPickerScreen extends StatelessWidget {
@@ -26,7 +26,7 @@ class FeelingPickerScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Nytt inlägg',
+          'New post',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
