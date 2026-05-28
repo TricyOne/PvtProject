@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'post_card.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const String apiBaseUrl = 'http://194.104.94.159:8080';
 
@@ -15,26 +16,75 @@ class OtherProfileScreen extends StatefulWidget {
 }
 
 class _OtherProfileScreenState extends State<OtherProfileScreen> {
+  final _storage = const FlutterSecureStorage();
+  int? _myUserId;
+  String _myUserName = '';
+  String? _profilePictureUrl;
+
   bool _isFollowRequested = false;
   int _selectedFilter = 0;
   late Future<List<Map<String, dynamic>>> _postsFuture;
+  late Future<List<Map<String, dynamic>>> _reportsFuture;
+  late Future<Map<int, String>> _lakeNamesFuture;
 
   @override
   void initState() {
     super.initState();
     _postsFuture = _fetchUserPosts();
+    _reportsFuture = _fetchUserReports();
+    _lakeNamesFuture = _fetchLakeNames();
+    _loadMyName();
   }
 
-  //Ingen ?userId-filter från Backend. så hela flödet hämtas och filtrerar klient-sidan. Fungerar men skalar inte.
+  Future<void> _loadMyName() async {
+    final id = await _storage.read(key: 'user_id');
+    final name = await _storage.read(key: 'user_name');
+    final picUrl = await _storage.read(key: 'profile_picture_url');
+    if (id != null && name != null && mounted) {
+      setState(() {
+        _myUserId = int.tryParse(id);
+        _myUserName = name;
+        _profilePictureUrl = picUrl;
+      });
+    }
+  }
+
+  String _displayName(int userId) {
+    if (_myUserId != null && userId == _myUserId) return _myUserName;
+    return 'User #$userId';
+  }
 
   Future<List<Map<String, dynamic>>> _fetchUserPosts() async {
     final response = await http.get(Uri.parse('$apiBaseUrl/api/social/posts'));
     if (response.statusCode != 200) {
-      throw Exception('Kunde inte hämta inlägg (${response.statusCode})');
+      throw Exception('Could not collect post (${response.statusCode})');
     }
     final all = (json.decode(response.body) as List)
         .cast<Map<String, dynamic>>();
     return all.where((p) => p['userId'] == widget.userId).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchUserReports() async {
+    final response = await http.get(
+      Uri.parse('$apiBaseUrl/api/users/${widget.userId}/comments'),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Could not collect reports (${response.statusCode})');
+    }
+    return (json.decode(response.body) as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<int, String>> _fetchLakeNames() async {
+    try {
+      final response = await http.get(Uri.parse('$apiBaseUrl/api/locations'));
+      if (response.statusCode != 200) return {};
+      final data = (json.decode(response.body) as List)
+          .cast<Map<String, dynamic>>();
+      return {for (final loc in data) loc['id'] as int: loc['title'] as String};
+    } catch (e) {
+      debugPrint('Could not collect location-names: $e');
+      return {};
+    }
   }
 
   @override
@@ -103,10 +153,19 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: ClipOval(
-                        child: Image.asset(
-                          'assets/icon_sample_user.png', //riktig avatar väntar på backend + profile_screen.dart
-                          fit: BoxFit.cover,
-                        ),
+                        child:
+                            (widget.userId == _myUserId &&
+                                _profilePictureUrl != null &&
+                                _profilePictureUrl!.isNotEmpty)
+                            ? Image.network(
+                                _profilePictureUrl!,
+                                fit: BoxFit.cover,
+                              )
+                            //Kan bara visa annan användares avatar när backend returnerar profilePictureUrl per användare i PostRespone
+                            : Image.asset(
+                                'assets/icon_sample_user.png',
+                                fit: BoxFit.cover,
+                              ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -115,47 +174,57 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          const SizedBox(height: 20),
                           Text(
-                            'Användare #${widget.userId}',
+                            _displayName(widget.userId),
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              fontStyle: FontStyle.italic,
-                              color: Color(0xFF6E6E6E),
-                            ), //riktigt visningsnamn väntar på backend GET /api/users/{userId} / profile_screen.dart implementerar sätta namn
+                              color: Colors.black,
+                            ),
                           ),
 
                           const SizedBox(height: 8),
-                          Row(
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
-                              Icon(
-                                Icons.people,
-                                size: 18,
-                                color: Color(0xFF6E6E6E),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.people,
+                                    size: 18,
+                                    color: Color(0xFF6E6E6E),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '- friends [in development]',
+                                    style: TextStyle(
+                                      fontStyle: FontStyle.italic,
+                                      color: Color(0xFF6E6E6E),
+                                    ),
+                                  ),
+                                ],
                               ),
                               SizedBox(width: 4),
-                              Text(
-                                '- Vänner',
-                                style: TextStyle(
-                                  fontStyle: FontStyle.italic,
-                                  color: Color(0xFF6E6E6E),
-                                ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.article_outlined,
+                                    size: 18,
+                                    color: Color(0xFF6E6E6E),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '- posts [in development]',
+                                    style: TextStyle(
+                                      fontStyle: FontStyle.italic,
+                                      color: Color(0xFF6E6E6E),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(width: 16),
-                              Icon(
-                                Icons.article_outlined,
-                                size: 18,
-                                color: Color(0xFF6E6E6E),
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '- inlägg',
-                                style: TextStyle(
-                                  fontStyle: FontStyle.italic,
-                                  color: Color(0xFF6E6E6E),
-                                ),
-                              ),
-                            ], //siffrorna kräver profil-endpoint från backend
+                            ],
                           ),
                         ],
                       ),
@@ -164,7 +233,6 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Transform.translate(
@@ -183,7 +251,7 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                     ],
                   ),
                   child: const Text(
-                    'Bio... - väntar på profile-endpoint.',
+                    'Bio [in development]',
                     style: TextStyle(
                       fontStyle: FontStyle.italic,
                       color: Color(0xFF6E6E6E),
@@ -226,12 +294,35 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                                 ),
 
                                 const SizedBox(width: 8),
-                                Text(
-                                  _isFollowRequested
-                                      ? 'Förfrågan skickad'
-                                      : 'Följ',
-                                  style: const TextStyle(color: Colors.black),
-                                ),
+                                if (_isFollowRequested)
+                                  const Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Request sent',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 13,
+                                          height: 1.1,
+                                        ),
+                                      ),
+                                      Text(
+                                        '[in development]',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 13,
+                                          height: 1.1,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  const Text(
+                                    'Follow',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
                               ],
                             ),
                           ),
@@ -264,11 +355,28 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                                   width: 20,
                                   height: 29,
                                 ),
-
-                                SizedBox(width: 8),
-                                Text(
-                                  'Meddelande',
-                                  style: TextStyle(color: Colors.black),
+                                const SizedBox(width: 8),
+                                const Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Message',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 13,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                    Text(
+                                      '[in development]',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 13,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -286,11 +394,11 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _filterButton('Alla', 0),
+                  _filterButton('All', 0),
                   const SizedBox(width: 8),
-                  _filterButton('Inlägg', 1),
+                  _filterButton('Posts', 1),
                   const SizedBox(width: 8),
-                  _filterButton('Rapporter', 2),
+                  _filterButton('Reports', 2),
                 ],
               ),
             ),
@@ -298,63 +406,164 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _postsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return const Text('Kunde inte ladda inläggen.');
-                  }
-                  final posts = snapshot.data ?? const [];
-
-                  //Filtrera "Rapporter" är blockerad - behöver Comment Service-data per användare
-                  if (_selectedFilter == 2) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(
-                        child: Text(
-                          'Finns ingen endpoint för att filtrera rapporter på användare',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            color: Color(0xFF6E6E6E),
-                          ), //comment service har bara GET /api/locations/{id}/comments - alltså per sjö, inte per användare
-                        ),
-                      ),
-                    );
-                  }
-                  //Filter alla/inlägg visar samma data - finns ingen filtrering från backend
-                  if (posts.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(
-                        child: Text('Inga inlägg från denna användare'),
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: posts.map((post) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: PostCard(
-                          username: 'Användare #${widget.userId}',
-                          userId: widget.userId,
-                          date: _formatDate(post['createdAt'] as String),
-                          text: post['body'] as String? ?? '',
-                          imageUrl: post['imageUrl'] as String?,
-                          disableUsernameTap: true,
-                          replaceOnTap: true,
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
+              child: _buildFilteredContent(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFilteredContent() {
+    if (_selectedFilter == 2) return _buildReportsList();
+    if (_selectedFilter == 1) return _buildPostsList();
+    return _buildCombinedList();
+  }
+
+  Widget _buildPostsList() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _postsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Text('Could not load the posts');
+        }
+        final posts = snapshot.data ?? const [];
+        if (posts.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: Text('No posts from this user')),
+          );
+        }
+        return Column(
+          children: posts.map((post) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: PostCard(
+                username: _displayName(widget.userId),
+                userId: widget.userId,
+                date: _formatDate(post['createdAt'] as String),
+                text: post['body'] as String? ?? '',
+                imageUrl: post['imageUrl'] as String?,
+                locationId: post['locationId'] as int?,
+                feeling: post['feeling'] as String?,
+                disableUsernameTap: true,
+                replaceOnTap: true,
+                profilePictureUrl: widget.userId == _myUserId
+                    ? _profilePictureUrl
+                    : null,
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildReportsList() {
+    return FutureBuilder<List<Object>>(
+      future: Future.wait([_reportsFuture, _lakeNamesFuture]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return const Text('Could not load content');
+        }
+        final reports = snapshot.data![0] as List<Map<String, dynamic>>;
+        final lakeNames = snapshot.data![1] as Map<int, String>;
+        if (reports.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: Text('No reports from this user')),
+          );
+        }
+        return Column(
+          children: reports.map((r) {
+            final locId = r['locationId'] as int;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: PostCard(
+                username: _displayName(widget.userId),
+                userId: widget.userId,
+                date: _formatDate(r['createdAt'] as String),
+                text: r['body'] as String? ?? '',
+                imageUrl: r['imageUrl'] as String?,
+                locationId: locId,
+                locationName: lakeNames[locId] ?? 'Unknown location',
+                disableUsernameTap: true,
+                replaceOnTap: true,
+                profilePictureUrl: widget.userId == _myUserId
+                    ? _profilePictureUrl
+                    : null,
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildCombinedList() {
+    return FutureBuilder<List<Object>>(
+      future: Future.wait([_postsFuture, _reportsFuture, _lakeNamesFuture]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Text('Could not load content');
+        }
+        final posts = snapshot.data![0] as List<Map<String, dynamic>>;
+        final reports = snapshot.data?[1] as List<Map<String, dynamic>>;
+        final lakeNames = snapshot.data?[2] as Map<int, String>;
+
+        final combined = <Map<String, dynamic>>[
+          for (final p in posts) {...p, '_type': 'post'},
+          for (final r in reports) {...r, '_type': 'report'},
+        ];
+        combined.sort((a, b) {
+          final aDate = a['createdAt'] as String? ?? '';
+          final bDate = b['createdAt'] as String? ?? '';
+          return bDate.compareTo(aDate);
+        });
+
+        if (combined.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: Text('No content from this user')),
+          );
+        }
+
+        return Column(
+          children: combined.map((item) {
+            final isReport = item['_type'] == 'report';
+            final locId = item['locationId'] as int?;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: PostCard(
+                username: _displayName(widget.userId),
+                userId: widget.userId,
+                date: _formatDate(item['createdAt'] as String),
+                text: item['body'] as String? ?? '',
+                imageUrl: item['imageUrl'] as String?,
+                locationId: locId,
+                locationName: isReport
+                    ? (lakeNames[locId] ?? 'Unknown location')
+                    : null,
+                feeling: isReport ? null : item['feeling'] as String?,
+                disableUsernameTap: true,
+                replaceOnTap: true,
+                profilePictureUrl: widget.userId == _myUserId
+                    ? _profilePictureUrl
+                    : null,
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -386,7 +595,8 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
   }
 
   String _formatDate(String iso) {
-    final dt = DateTime.parse(iso);
+    final normalized = iso.endsWith('Z') ? iso : '${iso}Z';
+    final dt = DateTime.parse(normalized).toLocal();
     final d =
         '${dt.day.toString().padLeft(2, '0')}/'
         '${dt.month.toString().padLeft(2, '0')}-${dt.year}';

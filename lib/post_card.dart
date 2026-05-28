@@ -6,10 +6,28 @@ class PostCard extends StatelessWidget {
   final int userId;
   final String date;
   final String text;
-  final String? imageUrl; //hasImage
-  final int? locationId; //location
+  final String? imageUrl;
+  final int? locationId;
+  final String? locationName;
   final bool disableUsernameTap;
   final bool replaceOnTap;
+  final String? feeling;
+  final String? profilePictureUrl;
+
+  static const feelingLabel = {
+    'HAPPY': 'happy',
+    'EXCITED': 'excited',
+    'CALM': 'calm',
+    'TIRED': 'tired',
+    'COLD': 'cold',
+  };
+  static const feelingEmoji = {
+    'HAPPY': '\u{1F600}',
+    'EXCITED': '\u{1F929}',
+    'CALM': '\u{1F60C}',
+    'TIRED': '\u{1F971}',
+    'COLD': '\u{1F976}',
+  };
 
   const PostCard({
     super.key,
@@ -19,8 +37,11 @@ class PostCard extends StatelessWidget {
     required this.text,
     this.imageUrl,
     this.locationId,
+    this.locationName,
     this.disableUsernameTap = false,
     this.replaceOnTap = false,
+    this.feeling,
+    this.profilePictureUrl,
   });
 
   @override
@@ -36,9 +57,13 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 18,
-                backgroundImage: AssetImage('assets/icon_sample_user.png'),
+                backgroundImage:
+                    (profilePictureUrl != null && profilePictureUrl!.isNotEmpty)
+                    ? NetworkImage(profilePictureUrl!)
+                    : const AssetImage('assets/icon_sample_user.png')
+                          as ImageProvider,
                 backgroundColor: Colors.white,
               ),
               const SizedBox(width: 8),
@@ -60,8 +85,7 @@ class PostCard extends StatelessWidget {
                   username,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontStyle: FontStyle.italic,
-                    color: Color(0xFF6E6E6E),
+                    color: Colors.black,
                   ),
                 ),
               ),
@@ -89,20 +113,26 @@ class PostCard extends StatelessWidget {
             const SizedBox(height: 8),
           ],
 
-          if (locationId != null) ...[
+          if (locationId != null || locationName != null) ...[
             Row(
               children: [
                 const Icon(Icons.location_on, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  'Plats #$locationId',
+                  locationName ?? 'Location #$locationId',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
             const SizedBox(height: 6),
           ],
-
+          if (feeling != null && feelingLabel.containsKey(feeling)) ...[
+            Text(
+              '${username.split(' ').first} is feeling ${feelingLabel[feeling]} ${feelingEmoji[feeling]}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+          ],
           Text(
             text,
             maxLines: 3,

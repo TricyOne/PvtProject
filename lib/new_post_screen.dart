@@ -26,6 +26,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
   final _storage = const FlutterSecureStorage();
   String? _jwtToken;
   int? _currentUserId;
+  String? _userName;
+  String? _profilePictureUrl;
 
   static const Map<String, String> _displayLabel = {
     'HAPPY': 'happy',
@@ -57,11 +59,21 @@ class _NewPostScreenState extends State<NewPostScreen> {
   Future<void> _loadAuth() async {
     final jwt = await _storage.read(key: 'jwt_token');
     final userIdStr = await _storage.read(key: 'user_id');
+    final name = await _storage.read(key: 'user_name');
+    final picUrl = await _storage.read(key: 'profile_picture_url');
     if (!mounted) return;
     setState(() {
       _jwtToken = jwt;
       _currentUserId = userIdStr != null ? int.parse(userIdStr) : null;
+      _userName = name;
+      _profilePictureUrl = picUrl;
     });
+  }
+
+  String _firstName() {
+    if (_userName != null) return _userName!.split(' ').first;
+    if (_currentUserId != null) return 'User #$_currentUserId';
+    return '';
   }
 
   Future<void> _pickImage() async {
@@ -87,22 +99,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
     );
     if (picked == null) return;
 
-    final label = _displayLabel[picked]!;
-    final emoji = _emoji[picked]!;
-
-    //placeholdernamn används, byt till riktiga visningsnamn när profile_screen.dart levererar det
-    final newLine = 'User #${_currentUserId!} is feeling $label $emoji';
-
-    final currentText = _textController.text;
-    final rest = _selectedFeeling != null
-        ? (currentText.contains('\n')
-              ? currentText.substring(currentText.indexOf('\n') + 1)
-              : '')
-        : currentText;
-
     setState(() {
       _selectedFeeling = picked;
-      _textController.text = rest.isEmpty ? '$newLine\n' : '$newLine\n$rest';
     });
   }
 
@@ -252,9 +250,14 @@ class _NewPostScreenState extends State<NewPostScreen> {
                       ),
                     );
                   },
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 24,
-                    backgroundImage: AssetImage('assets/icon_sample_user.png'),
+                    backgroundImage:
+                        (_profilePictureUrl != null &&
+                            _profilePictureUrl!.isNotEmpty)
+                        ? NetworkImage(_profilePictureUrl!)
+                        : const AssetImage('assets/icon_sample_user.png')
+                              as ImageProvider,
                     backgroundColor: Colors.white,
                   ),
                 ),
@@ -262,7 +265,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 const SizedBox(width: 12),
                 //placeholdernamn, byts till riktiga visningsnamnet när profile_screen.dart levererar funktionaliteten
                 Text(
-                  'User #${_currentUserId ?? ""}',
+                  _firstName(),
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -298,13 +301,28 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   height: 140,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(color: const Color(0xFFE5F2FF)),
-                  child: TextField(
-                    controller: _textController,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Share your thoughts and feelings!',
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_selectedFeeling != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '${_firstName()} is feeling ${_displayLabel[_selectedFeeling]} ${_emoji[_selectedFeeling]}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      Expanded(
+                        child: TextField(
+                          controller: _textController,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Share your thoughts and feelings!',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Positioned(
