@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../location_model.dart';
+import '../../location_service.dart';
 import '../../ice_report_model.dart';
 
 class LakeSearchField extends StatefulWidget {
@@ -10,33 +13,55 @@ class LakeSearchField extends StatefulWidget {
   });
 
   @override
-  State<LakeSearchField> createState() => _LakeSearchFieldState();
+  State<LakeSearchField> createState() =>
+      _LakeSearchFieldState();
 }
 
-class _LakeSearchFieldState extends State<LakeSearchField> {
+class _LakeSearchFieldState
+    extends State<LakeSearchField> {
 
-  final List<String> lakes = [
-    'Vänern',
-    'Vättern',
-    'Mälaren',
-    'Hjälmaren',
-    'Storsjön',
-  ];
+  List<LocationModel> _locations = [];
+  List<LocationModel> _filtered = [];
 
-  List<String> filtered = [];
+  bool _loading = true;
 
-  void _filter(String query) {
-    if (query.isEmpty) {
-      setState(() => filtered = []);
-      return;
-    }
+  final TextEditingController _controller =
+      TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final data =
+        await LocationService.fetchLocations();
 
     setState(() {
-      filtered = lakes
-          .where((l) => l.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      _locations = data;
+      _filtered = data;
+      _loading = false;
+    });
+  }
 
-      widget.report.addReportFor = query;
+  void _filter(String query) {
+    setState(() {
+      _filtered = _locations
+          .where((l) => l.title
+              .toLowerCase()
+              .contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  void _select(LocationModel lake) {
+    setState(() {
+      widget.report.locationId = lake.id;
+      widget.report.addReportFor = lake.title;
+
+      _controller.text = lake.title;
+      _filtered = [];
     });
   }
 
@@ -46,6 +71,7 @@ class _LakeSearchFieldState extends State<LakeSearchField> {
       children: [
 
         TextField(
+          controller: _controller,
           onChanged: _filter,
 
           decoration: InputDecoration(
@@ -60,28 +86,30 @@ class _LakeSearchFieldState extends State<LakeSearchField> {
           ),
         ),
 
-        if (filtered.isNotEmpty)
+        const SizedBox(height: 8),
+
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: CircularProgressIndicator(),
+          )
+        else if (_filtered.isNotEmpty)
           Container(
-            margin: const EdgeInsets.only(top: 8),
-            constraints: const BoxConstraints(maxHeight: 180),
+            constraints:
+                const BoxConstraints(maxHeight: 200),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
               borderRadius: BorderRadius.circular(12),
             ),
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: filtered.length,
+              itemCount: _filtered.length,
               itemBuilder: (context, index) {
-                final lake = filtered[index];
+                final lake = _filtered[index];
 
                 return ListTile(
-                  title: Text(lake),
-                  onTap: () {
-                    setState(() {
-                      widget.report.addReportFor = lake;
-                      filtered = [];
-                    });
-                  },
+                  title: Text(lake.title),
+                  onTap: () => _select(lake),
                 );
               },
             ),
