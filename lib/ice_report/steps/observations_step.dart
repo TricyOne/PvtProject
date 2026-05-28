@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../ice_report_model.dart';
+
+import 'widgets/observation_photo_picker.dart';
+import 'widgets/observation_rating.dart';
+import 'widgets/observation_textbox.dart';
 
 class ObservationsStep extends StatefulWidget {
   final IceReportModel report;
@@ -64,7 +69,6 @@ class _ObservationsStepState extends State<ObservationsStep> {
 
           const SizedBox(height: 20),
 
-          // TITLE
           const Text(
             'Observations',
             textAlign: TextAlign.center,
@@ -76,111 +80,22 @@ class _ObservationsStepState extends State<ObservationsStep> {
 
           const SizedBox(height: 20),
 
-          // TEXT FIELD
-          TextField(
+          ObservationTextbox(
             controller: controller,
             onChanged: _onChanged,
-            maxLines: 6,
-
-            decoration: InputDecoration(
-              hintText:
-                  'Add notes on ice texture, snow cover, shore access or share your thoughts...',
-
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-
-              suffixIcon: const Icon(Icons.edit),
-            ),
           ),
 
           const SizedBox(height: 20),
 
-          // PHOTO BOX
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(16),
-            ),
-
-            child: Column(
-              children: [
-
-                // HEADER
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
-                      'Add photo...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Icon(Icons.image, color: Colors.grey),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // BUTTON ROW
-                Row(
-                  children: [
-
-                    ElevatedButton(
-                      onPressed: _addPhoto,
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(14),
-                        backgroundColor: Colors.blue,
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    const Text(
-                      'Tap to add image from camera or gallery',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          ObservationPhotoPicker(
+            onAddPhoto: _addPhoto,
           ),
 
           const SizedBox(height: 20),
 
-          // RATING TITLE
-          const Text(
-            'Rate Your Ice Experience!',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // STARS
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              final starIndex = index + 1;
-              final isFilled = starIndex <= rating;
-
-              return IconButton(
-                onPressed: () => _setRating(starIndex),
-                icon: Icon(
-                  Icons.star,
-                  color: isFilled ? Colors.black : Colors.grey,
-                ),
-              );
-            }),
+          ObservationRating(
+            rating: rating,
+            onRatingChanged: _setRating,
           ),
         ],
       ),
