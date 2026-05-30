@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _selectedLocation;
 
   Map<String, double> _temperatures = {};
+  Map<String, String> _conditions = {};
 
   final MapController _mapController = MapController();
 
@@ -157,10 +158,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final weather = data['weather'];
         if (weather != null) {
           final tempMap = weather['temperature'] as Map<String, dynamic>;
+          final condMap = weather['condition'] as Map<String, dynamic>?;
           setState(() {
             _temperatures = tempMap.map(
               (key, value) => MapEntry(key, (value as num).toDouble()),
             );
+            _conditions =
+                condMap?.map((key, value) => MapEntry(key, value as String)) ??
+                {};
           });
         }
       }
@@ -228,25 +233,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...filteredLocations.map(
-                    (loc) => ListTile(
-                      title: Text(loc['title'] as String),
-                      //  subtitle: Text((loc['description'] as String?) ?? ''), inkluderar beskrivning under sjön
-                      onTap: () {
-                        Navigator.pop(context);
-                        setState(() {
-                          _selectedLocation = loc;
-                          _locationLabel = loc['title'] as String;
-                        });
-                        _fetchWeather(loc['id'] as int);
-                        _mapController.move(
-                          LatLng(
-                            (loc['lat'] as num).toDouble(),
-                            (loc['lng'] as num).toDouble(),
-                          ),
-                          13.0,
-                        );
-                      },
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: filteredLocations
+                          .map(
+                            (loc) => ListTile(
+                              title: Text(loc['title'] as String),
+                              onTap: () {
+                                Navigator.pop(context);
+                                setState(() {
+                                  _selectedLocation = loc;
+                                  _locationLabel = loc['title'] as String;
+                                });
+                                _fetchWeather(loc['id'] as int);
+                                _mapController.move(
+                                  LatLng(
+                                    loc['lat'] as double,
+                                    loc['lng'] as double,
+                                  ),
+                                  13.0,
+                                );
+                              },
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -502,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, index) {
                       final hour = _getSortedHours()[index];
                       final temp = _temperatures[hour]!;
-                      return _buildWeatherColumn(hour, temp);
+                      return _buildWeatherColumn(hour, temp, _conditions[hour]);
                     },
                   ),
           ),
@@ -511,7 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWeatherColumn(String time, double temp) {
+  Widget _buildWeatherColumn(String time, double temp, String? condition) {
     return Container(
       width: 65,
       height: 133,
@@ -526,13 +537,30 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('$time:00', style: const TextStyle(fontSize: 16)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             '${temp.toStringAsFixed(0)}\u00B0C',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 6),
+          Icon(_conditionIcon(condition), size: 24, color: Colors.black),
         ],
       ),
     );
+  }
+
+  IconData _conditionIcon(String? condition) {
+    switch (condition) {
+      case 'sunny':
+        return Icons.wb_sunny_outlined;
+      case 'cloudy':
+        return Icons.cloud_outlined;
+      case 'snow':
+        return Icons.ac_unit_outlined;
+      case 'rain':
+        return Icons.water_drop_outlined;
+      default:
+        return Icons.thermostat;
+    }
   }
 }

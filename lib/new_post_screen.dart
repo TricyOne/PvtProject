@@ -104,6 +104,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
     });
   }
 
+  void _showInDevelopment(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('In development')));
+  }
+
   Future<String?> _uploadImage(File image) async {
     final request = http.MultipartRequest(
       'POST',
@@ -177,7 +183,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Inlägget publicerades')));
+        ).showSnackBar(const SnackBar(content: Text('Post was published')));
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -276,10 +282,15 @@ class _NewPostScreenState extends State<NewPostScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 //Personer+Plats kräver user-search-endpoint från backend.
-                const _RoundedButton(icon: Icons.people, label: 'People'),
-                const _RoundedButton(
+                _RoundedButton(
+                  icon: Icons.people,
+                  label: 'People',
+                  onTap: () => _showInDevelopment(context),
+                ),
+                _RoundedButton(
                   icon: Icons.location_on,
                   label: 'Location',
+                  onTap: () => _showInDevelopment(context),
                 ),
                 _FeelingButton(
                   selectedFeeling: _selectedFeeling,
@@ -432,23 +443,28 @@ class _NewPostScreenState extends State<NewPostScreen> {
 class _RoundedButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _RoundedButton({required this.icon, required this.label});
+  final VoidCallback? onTap;
+  const _RoundedButton({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 6),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

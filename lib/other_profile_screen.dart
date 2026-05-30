@@ -123,7 +123,7 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                     fit: BoxFit.cover,
                   ),
                   Positioned(
-                    top: 16,
+                    top: 45,
                     left: 16,
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
@@ -216,7 +216,7 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                                   ),
                                   SizedBox(width: 4),
                                   Text(
-                                    '- posts [in development]',
+                                    '- posts',
                                     style: TextStyle(
                                       fontStyle: FontStyle.italic,
                                       color: Color(0xFF6E6E6E),
@@ -388,25 +388,34 @@ class _OtherProfileScreenState extends State<OtherProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+            Transform.translate(
+              offset: const Offset(0, -15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _filterButton('All', 0),
-                  const SizedBox(width: 8),
-                  _filterButton('Posts', 1),
-                  const SizedBox(width: 8),
-                  _filterButton('Reports', 2),
+                  const SizedBox(height: 8),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _filterButton('All', 0),
+                        const SizedBox(width: 8),
+                        _filterButton('Posts', 1),
+                        const SizedBox(width: 8),
+                        _filterButton('Reports', 2),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildFilteredContent(),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildFilteredContent(),
             ),
           ],
         ),
