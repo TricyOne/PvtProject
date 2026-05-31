@@ -4,6 +4,7 @@ import 'report_screen.dart';
 import 'saved_screen.dart';
 import 'login_page.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class MenuExtended extends StatelessWidget {
   final bool isGuest;
@@ -63,6 +64,8 @@ class MenuExtended extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               onTap: () async {
+                const storage = FlutterSecureStorage();
+                await storage.deleteAll();
                 await GoogleSignIn().signOut();
 
                 if (!context.mounted) return;

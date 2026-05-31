@@ -52,6 +52,11 @@ class LoginPage extends StatelessWidget {
         if (meResp.statusCode == 200) {
           final me = jsonDecode(meResp.body);
           await _storage.write(key: 'user_id', value: me['id'].toString());
+          await _storage.write(key: 'user_name', value: me['name']);
+          await _storage.write(
+            key: 'profile_picture_url',
+            value: me['profilePictureUrl'] ?? '',
+          );
         }
 
         Navigator.pushReplacement(

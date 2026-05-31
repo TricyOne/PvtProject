@@ -7,7 +7,14 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text('Settings Page', style: TextStyle(fontSize: 24)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Settings Page', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 8),
+            const Text('[in development]'),
+          ],
+        ),
       ),
     );
   }

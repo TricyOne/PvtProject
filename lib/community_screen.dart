@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'new_post_screen.dart';
 import 'post_card.dart';
@@ -15,12 +16,31 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
+  final _storage = const FlutterSecureStorage();
+  int? _myUserId;
+  String _myUserName = '';
+  String? _profilePictureUrl;
+
   late Future<List<Map<String, dynamic>>> _postsFuture;
 
   @override
   void initState() {
     super.initState();
     _postsFuture = _fetchPosts();
+    _loadMyName();
+  }
+
+  Future<void> _loadMyName() async {
+    final id = await _storage.read(key: 'user_id');
+    final name = await _storage.read(key: 'user_name');
+    final picUrl = await _storage.read(key: 'profile_picture_url');
+    if (id != null && name != null && mounted) {
+      setState(() {
+        _myUserId = int.tryParse(id);
+        _myUserName = name;
+        _profilePictureUrl = picUrl;
+      });
+    }
   }
 
   Future<List<Map<String, dynamic>>> _fetchPosts() async {
@@ -39,10 +59,16 @@ class _CommunityScreenState extends State<CommunityScreen> {
     await _postsFuture;
   }
 
+  String _displayName(int userId) {
+    if (_myUserId != null && userId == _myUserId) return _myUserName;
+    return 'User #$userId';
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
+      initialIndex: 1,
       child: Column(
         children: [
           const SizedBox(height: 8),
@@ -62,7 +88,22 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ],
           ),
           // Båda flikar visar samma feed. Finns ingen filtreringsendpoint från backend.
-          Expanded(child: TabBarView(children: [_buildFeed(), _buildFeed()])),
+          Expanded(
+            child: TabBarView(
+              children: [
+                const Center(
+                  child: Text(
+                    '[in development]',
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF6E6E6E),
+                    ),
+                  ),
+                ),
+                _buildFeed(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -102,9 +143,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 ),
               );
             },
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 22,
-              backgroundImage: AssetImage('assets/icon_sample_user.png'),
+              backgroundImage:
+                  (_profilePictureUrl != null && _profilePictureUrl!.isNotEmpty)
+                  ? NetworkImage(_profilePictureUrl!)
+                  : const AssetImage('assets/icon_sample_user.png')
+                        as ImageProvider,
               backgroundColor: Colors.white,
             ),
           ),
@@ -173,13 +218,19 @@ class _CommunityScreenState extends State<CommunityScreen> {
             itemBuilder: (context, index) {
               final post = posts[index];
               final userId = post['userId'] as int;
+              final feeling = post['feeling'] as String?;
+
               return PostCard(
-                username: _placeholderUsername(userId),
+                username: _displayName(userId),
                 userId: userId,
                 date: _formatDate(post['createdAt'] as String),
                 text: post['body'] as String? ?? '',
                 imageUrl: post['imageUrl'] as String?,
                 locationId: post['locationId'] as int?,
+                feeling: feeling,
+                profilePictureUrl: userId == _myUserId
+                    ? _profilePictureUrl
+                    : null,
               );
             },
           ),
@@ -188,12 +239,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 }
-
-//Platshållare för username/avatar
-//PostResponse saknar username/avatar.
-//Avnändare visas som "Användare #N" tills profile_screen.dart lägger till möjlighet att sätta username + avatar
-
-String _placeholderUsername(int userId) => 'User #$userId';
 
 String _formatDate(String iso) {
   final normalized = iso.endsWith('Z') ? iso : '${iso}Z';
