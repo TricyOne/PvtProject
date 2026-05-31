@@ -27,8 +27,11 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   void _onItemTapped(int index) {
-    const guestBlockedIndexes =
-        <int>{}; //1 = gästinlogg kan inte använda community-knappen
+    const guestBlockedIndexes = <int>{
+      1,
+      2,
+      4,
+    }; //1 = gästinlogg kan inte använda community-knappen
     if (widget.isGuest && guestBlockedIndexes.contains(index)) return;
     setState(() {
       _selectedIndex = index;

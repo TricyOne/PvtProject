@@ -29,29 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final MapController _mapController = MapController();
 
-  final List<Map<String, dynamic>> reports = [
-    {
-      'time': '12:45, today',
-      'location': 'Ensjö',
-      'thickness': 10,
-      'unit': 'cm',
-      'rating': 3,
-    },
-    {
-      'time': '10:00, today',
-      'location': 'Annansjö',
-      'thickness': 15,
-      'unit': 'cm',
-      'rating': 5,
-    },
-    {
-      'time': '17:20, 11/12',
-      'location': 'Ensjö',
-      'thickness': 9,
-      'unit': 'cm',
-      'rating': 2,
-    },
-  ];
+  List<Map<String, dynamic>> _recentReports = [];
+  bool _reportsLoaded = false;
 
   @override
   void initState() {
@@ -60,9 +39,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _init() async {
+    //här 2
     await _fetchLocations();
     await _fetchUserPosition();
     _selectNearestLocation();
+    await _fetchRecentReports();
   }
 
   Future<void> _fetchUserPosition() async {
@@ -100,6 +81,59 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('Could not collect lakes/ice-locations: $e');
     }
+  }
+
+  Future<void> _fetchRecentReports() async {
+    final List<Map<String, dynamic>> allReports = [];
+    //Backend levererar inte alla rapporter i ett anrop, enbart en endpoint per sjö.
+    //Därför ett anrop per sjö (6 st), som sedan slås ihop.
+    for (final loc in _locations) {
+      try {
+        final response = await http.get(
+          Uri.parse('$_apiBaseUrl/api/locations/${loc['id']}/comments'),
+        );
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          for (final item in data) {
+            final report = Map<String, dynamic>.from(item as Map);
+            report['locationTitle'] = loc['title'];
+            allReports.add(report);
+          }
+        }
+      } catch (e) {
+        debugPrint('Could not fetch reports for location ${loc['id']}: $e');
+      }
+    }
+
+    allReports.sort((a, b) {
+      final da =
+          DateTime.tryParse(a['measuredAt'] as String? ?? '') ?? DateTime(2000);
+      final db =
+          DateTime.tryParse(b['measuredAt'] as String? ?? '') ?? DateTime(2000);
+      return db.compareTo(da);
+    });
+
+    setState(() {
+      _recentReports = allReports.take(3).toList();
+      _reportsLoaded = true;
+    });
+  }
+
+  String _formatReportTime(String? iso) {
+    if (iso == null) return '';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final sameDay =
+        dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    if (sameDay) {
+      return '$hh:$mm, today';
+    }
+    final dd = dt.day.toString().padLeft(2, '0');
+    final mo = dt.month.toString().padLeft(2, '0');
+    return '$hh:$mm, $dd/$mo';
   }
 
   void _selectNearestLocation() {
@@ -352,12 +386,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          ...reports.map(
-            (r) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _buildReportCard(r),
+          if (!_reportsLoaded)
+            const Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_recentReports.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('No reports yet'),
+            )
+          else
+            ..._recentReports.map(
+              (r) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildReportCard(r),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -366,14 +413,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildReportCard(Map<String, dynamic> report) {
     final reportTextStyle = GoogleFonts.amiko(
       color: const Color(0xDB33363F),
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: FontWeight.w600,
     );
+
+    final int rating = report['rating'] as int;
+    final int? thickness = report['iceThickness'] as int?;
 
     return GestureDetector(
       onTap: () {
         //att göra senare: navigera till rapportdetaljer under Map-fliken
         //(väntar på Map-delen har sin detail-vy klar)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('in development'),
+            duration: Duration(seconds: 2),
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -389,28 +445,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '[${report['time']}] ',
+                      text:
+                          '[${_formatReportTime(report['measuredAt'] as String?)}] ',
                       style: reportTextStyle,
                     ),
                     TextSpan(
-                      text: '${report['location']} ',
+                      text: '${report['locationTitle']} ',
                       style: reportTextStyle.copyWith(
-                        decoration: TextDecoration.underline,
+                        //  decoration: TextDecoration.underline,
                       ),
                     ),
-                    TextSpan(
-                      text: '${report['thickness']}',
-                      style: reportTextStyle.copyWith(
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                        backgroundColor: _ratingColor(report['rating'] as int),
-                      ),
-                    ),
-                    TextSpan(
-                      text: ' ${report['unit']}',
-                      style: reportTextStyle.copyWith(
-                        decoration: TextDecoration.underline,
-                        backgroundColor: _ratingColor(report['rating'] as int),
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _thicknessColor(thickness),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          thickness == null ? '- cm' : '$thickness cm',
+                          style: reportTextStyle.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -418,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            _buildStars(report['rating'] as int),
+            _buildStars(rating),
           ],
         ),
       ),
@@ -426,22 +487,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStars(int rating) {
+    //här 7
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(
         5,
         (i) => Icon(
-          i < rating ? Icons.star : Icons.star_border,
-          color: Colors.amber,
-          size: 16,
+          i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+          color: Colors.black,
+          size: 18,
         ),
       ),
     );
   }
 
-  Color _ratingColor(int rating) {
-    if (rating >= 4) return const Color(0xFF4CAF50);
-    if (rating == 3) return const Color(0xFFFFC107);
+  Color _thicknessColor(int? thickness) {
+    //här 8
+    if (thickness == null) return const Color(0xFF9E9E9E);
+    if (thickness >= 15) return const Color.fromARGB(255, 85, 196, 88);
+    if (thickness >= 10) return const Color(0xFFFFC107);
     return const Color(0xFFF44336);
   }
 
