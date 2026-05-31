@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../home_screen.dart';
+import '../main_navigation.dart';
 
 import 'ice_report_model.dart';
 import 'report_service.dart';
@@ -65,7 +65,7 @@ class _IceReportScreenState extends State<IceReportScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
+          builder: (context) => const MainNavigation(),
         ),
         (route) => false,
       );
