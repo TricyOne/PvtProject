@@ -87,9 +87,21 @@ class LoginPage extends StatelessWidget {
             const Spacer(flex: 3),
 
             Padding(
-              padding: const EdgeInsets.only(bottom: 150.0),
+              padding: const EdgeInsets.only(bottom: 40.0),
               child: Image.asset('assets/skate_icon.png', height: 300),
             ),
+
+            const Text(
+              'IceOut',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Amiko',
+                color: Color(0xFF000000),
+              ),
+            ),
+
+            const SizedBox(height: 100),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
